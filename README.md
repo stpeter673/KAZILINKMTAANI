@@ -1,0 +1,2 @@
+# KAZILINKMTAANI
+Private Company 
