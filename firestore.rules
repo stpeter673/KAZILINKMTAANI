@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── HELPER FUNCTIONS ──────────────────────────────────────
+
+    // Only allow authenticated users
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Only allow the owner of the document
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // Admin emails (replace with your real admin email)
+    function isAdmin() {
+      return request.auth.token.email in [
+        'admin@kazilink.com',
+        'pitahwambuajr@gmail.com'
+      ];
+    }
+
+    // Validate string fields (no XSS)
+    function noScript(val) {
+      return !val.matches('.*<script.*') &&
+             !val.matches('.*javascript:.*') &&
+             !val.matches('.*onerror.*') &&
+             !val.matches('.*onclick.*');
+    }
+
+    // Check request is not too large
+    function sizeOk() {
+      return request.resource.data.size() < 50;
+    }
+
+    // ── USERS ─────────────────────────────────────────────────
+    match /users/{userId} {
+      // User can only read their own document
+      allow read: if isAuth() && isOwner(userId);
+
+      // User CANNOT write directly — only Cloud Functions can update
+      // (coins, balance, subscribed, etc. are all updated via Cloud Functions)
+      allow write: if false;
+
+      // Admin can read any user
+      allow read: if isAuth() && isAdmin();
+    }
+
+    // ── PRODUCTS ─────────────────────────────────────────────
+    match /products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+
+      // Authenticated user can create (with XSS validation)
+      allow create: if isAuth()
+        && request.resource.data.keys().hasAll(['name','price','cat','wa','sellerUid'])
+        && request.resource.data.sellerUid == request.auth.uid
+        && noScript(request.resource.data.name)
+        && noScript(request.resource.data.get('desc',''))
+        && request.resource.data.price is int
+        && request.resource.data.price > 0
+        && request.resource.data.price < 10000000;
+
+      // Only owner or admin can update/delete
+      allow update, delete: if isAuth() &&
+        (isOwner(resource.data.sellerUid) || isAdmin());
+    }
+
+    // ── TRANSACTIONS ──────────────────────────────────────────
+    match /transactions/{txId} {
+      // User can only read their own transactions
+      allow read: if isAuth() && resource.data.uid == request.auth.uid;
+      // No client writes — only Cloud Functions
+      allow write: if false;
+    }
+
+    // ── GIFTS ─────────────────────────────────────────────────
+    match /gifts/{giftId} {
+      // User can read their own sent gifts
+      allow read: if isAuth() && resource.data.senderUid == request.auth.uid;
+      // No client writes — only Cloud Functions
+      allow write: if false;
+    }
+
+    // ── WITHDRAWALS ───────────────────────────────────────────
+    match /withdrawals/{wId} {
+      // User can only read their own withdrawal requests
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      // No direct client writes — only via Cloud Functions
+      allow write: if false;
+    }
+
+    // ── PENDING PAYMENTS ──────────────────────────────────────
+    match /pendingPayments/{pId} {
+      // Only Cloud Functions can read/write (internal use)
+      allow read, write: if false;
+    }
+
+    // ── FRAUD ALERTS ──────────────────────────────────────────
+    match /fraudAlerts/{alertId} {
+      // Only admins can read fraud alerts
+      allow read: if isAuth() && isAdmin();
+      // No client writes
+      allow write: if false;
+    }
+
+    // ── ADMIN ─────────────────────────────────────────────────
+    match /admin/{doc} {
+      // Only admins can read
+      allow read: if isAuth() && isAdmin();
+      // No client writes — only Cloud Functions
+      allow write: if false;
+    }
+
+    // ── SECURITY LOGS ─────────────────────────────────────────
+    match /securityLogs/{logId} {
+      // Only admins can read
+      allow read: if isAuth() && isAdmin();
+      // No client writes
+      allow write: if false;
+    }
+
+
+    // ── RATE LIMITS (server-only) ─────────────────────────────
+    match /rateLimits/{key} {
+      allow read, write: if false;
+    }
+
+    // ── DEFAULT: DENY ALL ─────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

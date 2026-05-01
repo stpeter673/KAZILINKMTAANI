@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0f1a">
+<meta name="description" content="KaziLink Mtaani — Connect. Work. Earn.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KaziLink">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>KaziLink Mtaani</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0d0f1a;
+  --surface: #161929;
+  --surface2: #1e2235;
+  --border: #2a2f4a;
+  --text: #e8eaf5;
+  --muted: #6b7098;
+  --accent: #22c55e;
+  --accent2: #f43f5e;
+  --accent3: #f59e0b;
+  --accent4: #8b5cf6;
+  --blue: #3b82f6;
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --radius: 16px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── LOADING SCREEN ── */
+#loadScreen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; transition: opacity .4s;
+}
+.load-logo { font-family: 'Syne', sans-serif; font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+.load-sub { font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+.load-bar { width: 200px; height: 3px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.load-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent4)); border-radius: 3px; animation: loadFill 1.8s ease forwards; }
+@keyframes loadFill { from { width: 0 } to { width: 100% } }
+
+/* ── AUTH SCREEN ── */
+#authScreen {
+  display: none; min-height: 100vh; align-items: center; justify-content: center;
+  padding: 20px;
+  background: radial-gradient(ellipse at 20% 50%, rgba(34,197,94,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.08) 0%, transparent 60%),
+              var(--bg);
+}
+.auth-card {
+  width: 100%; max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 36px 28px;
+  box-shadow: var(--card-shadow);
+}
+.auth-logo { font-family: 'Syne', sans-serif; font-size: 28px; color: var(--accent); text-align: center; margin-bottom: 4px; }
+.auth-tagline { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+.auth-tabs { display: flex; background: var(--bg); border-radius: 12px; padding: 4px; margin-bottom: 24px; }
+.auth-tab { flex: 1; padding: 9px; text-align: center; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--muted); transition: .2s; border: none; background: none; font-family: 'Space Grotesk', sans-serif; }
+.auth-tab.active { background: var(--surface2); color: var(--text); }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .6px; }
+.field input { width: 100%; padding: 12px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; transition: .2s; }
+.field input:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--muted); }
+.btn { width: 100%; padding: 13px; border: none; border-radius: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: .2s; }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+.btn-danger { background: var(--accent2); color: white; }
+.btn-purple { background: var(--accent4); color: white; }
+.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+.auth-error { background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--accent2); margin-top: 10px; display: none; }
+
+/* ── MAIN APP ── */
+#mainApp { display: none; }
+
+/* TOP BAR */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,15,26,0.94); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 58px;
+}
+.topbar-logo { font-family: 'Syne', sans-serif; font-size: 18px; color: var(--accent); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.coin-chip { display: flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--accent3); cursor: pointer; }
+.avatar-btn { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent4)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #000; cursor: pointer; }
+
+/* TABS */
+.tab-nav {
+  position: sticky; top: 58px; z-index: 99;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; overflow-x: auto; padding: 0 16px; gap: 4px;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 13px 16px; background: none; border: none; border-bottom: 2px solid transparent; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; transition: .2s; display: flex; align-items: center; gap: 6px; }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; padding: 20px 16px; }
+.tab-content.active { display: block; }
+
+/* CARDS */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--card-shadow); margin-bottom: 14px; }
+.card-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+
+/* STATS GRID */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.stat-card .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.stat-card .stat-val { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.stat-card .stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* LIVE SECTION */
+.live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.live-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform .2s; }
+.live-card:hover { transform: translateY(-3px); }
+.live-thumb { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 64px; position: relative; }
+.live-pill { position: absolute; top: 10px; left: 10px; background: var(--accent2); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: white; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.live-viewers { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.6); color: white; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.live-info { padding: 14px; }
+.live-info h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.live-info p { font-size: 12px; color: var(--muted); }
+.live-coins { font-size: 12px; color: var(--accent3); margin: 6px 0; }
+.join-btn { width: 100%; margin-top: 10px; padding: 10px; background: linear-gradient(135deg, var(--accent2), var(--accent4)); color: white; border: none; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: .2s; }
+.join-btn:hover { opacity: .9; }
+
+/* GIFT MODAL / LIVE ROOM */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 500; align-items: center; justify-content: center; padding: 16px; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; position: relative; padding: 28px; animation: slideUp .3s ease; }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.modal-close { position: absolute; top: 14px; right: 16px; background: var(--surface2); border: none; color: var(--muted); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+/* GIFTS */
+.gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+.gift-item { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 8px; cursor: pointer; text-align: center; transition: .2s; }
+.gift-item:hover { border-color: var(--accent3); transform: scale(1.05); }
+.gift-item .g-emoji { font-size: 28px; }
+.gift-item .g-name { font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 600; }
+.gift-item .g-cost { font-size: 11px; color: var(--accent3); font-weight: 700; }
+
+/* MPESA PROMPT */
+.mpesa-card {
+  background: linear-gradient(135deg, #00a651, #007a3d);
+  border-radius: 16px; padding: 22px; text-align: center; margin-bottom: 16px; color: white;
+}
+.mpesa-card .mpesa-label { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.mpesa-card .mpesa-name { font-size: 20px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+.mpesa-card .mpesa-number { font-size: 28px; font-weight: 700; letter-spacing: 3px; margin-bottom: 10px; font-family: monospace; }
+.mpesa-card .mpesa-amount { background: rgba(255,255,255,.2); border-radius: 10px; padding: 10px; font-size: 22px; font-weight: 700; }
+.mpesa-steps { background: var(--surface2); border-radius: 12px; padding: 14px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 2; text-align: left; }
+.mpesa-steps strong { color: var(--text); }
+
+/* WALLET */
+.wallet-balance { background: linear-gradient(135deg, var(--accent4), var(--blue)); border-radius: 16px; padding: 22px; text-align: center; margin-bottom: 18px; }
+.wallet-balance .wbal-label { font-size: 12px; opacity: .8; }
+.wallet-balance .wbal-amount { font-size: 40px; font-weight: 700; margin: 4px 0; }
+.wallet-balance .wbal-sub { font-size: 12px; opacity: .7; }
+.coin-packs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.coin-pack { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; text-align: center; transition: .2s; font-family: 'Space Grotesk', sans-serif; color: var(--text); }
+.coin-pack.best { background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(234,88,12,.1)); border-color: var(--accent3); }
+.coin-pack:hover { border-color: var(--accent3); transform: scale(1.02); }
+.coin-pack .cp-coins { font-size: 18px; font-weight: 700; }
+.coin-pack .cp-price { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 12px 22px; border-radius: 30px; font-size: 13px; font-weight: 600; opacity: 0; z-index: 9000; transition: all .3s; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: rgba(244,63,94,.15); border-color: var(--accent2); color: var(--accent2); }
+.toast.success { background: rgba(34,197,94,.12); border-color: var(--accent); color: var(--accent); }
+
+/* BOTTOM NAV */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(22,25,41,0.97); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; z-index: 200; }
+.bnav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 8px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 10px; font-weight: 600; gap: 4px; font-family: 'Space Grotesk', sans-serif; transition: .2s; }
+.bnav-btn i { font-size: 18px; }
+.bnav-btn.active { color: var(--accent); }
+
+/* SUBSCRIPTION PLANS */
+.plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.plan-card { border: 2px solid var(--border); border-radius: 14px; padding: 16px; cursor: pointer; transition: .2s; position: relative; text-align: center; }
+.plan-card.selected, .plan-card:hover { border-color: var(--accent); background: rgba(34,197,94,.06); }
+.plan-card.popular::before { content:'POPULAR'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; font-size:9px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:1px; }
+.plan-price { font-size: 22px; font-weight: 700; color: var(--accent); margin: 4px 0; }
+.plan-features { list-style: none; margin-top: 10px; text-align: left; }
+.plan-features li { font-size: 11px; color: var(--muted); padding: 2px 0; }
+.plan-features li::before { content: '✓ '; color: var(--accent); font-weight: 700; }
+
+/* PROFILE */
+.profile-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.profile-av { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent4)); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #000; flex-shrink: 0; }
+.profile-name { font-size: 18px; font-weight: 700; }
+.profile-email { font-size: 12px; color: var(--muted); }
+.sub-badge { display: inline-block; background: linear-gradient(135deg, var(--accent4), var(--blue)); color: white; font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 20px; margin-top: 3px; }
+
+/* EARNINGS STRIP */
+.earn-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.earn-cell { background: var(--surface2); border-radius: 12px; padding: 12px; text-align: center; }
+.earn-cell strong { display: block; font-size: 18px; font-weight: 700; color: var(--accent4); }
+.earn-cell span { font-size: 10px; color: var(--muted); }
+
+/* WITHDRAW */
+.withdraw-field { display: flex; gap: 8px; margin-bottom: 10px; }
+.withdraw-field input { flex: 1; padding: 11px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; }
+.withdraw-field input:focus { border-color: var(--accent); }
+
+/* SHOP */
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.product-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform .2s; }
+.product-card:hover { transform: translateY(-3px); }
+.product-img { height: 120px; display: flex; align-items: center; justify-content: center; font-size: 48px; background: var(--surface2); }
+.product-info { padding: 12px; }
+.product-info h4 { font-size: 13px; font-weight: 700; line-height: 1.3; }
+.product-price { font-size: 15px; font-weight: 700; color: var(--accent3); margin-top: 4px; }
+.product-seller { font-size: 11px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.wa-btn { width: 100%; margin-top: 8px; padding: 8px; background: #25d366; color: white; border: none; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: .2s; }
+
+/* HOW IT WORKS */
+.hiw { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
+.hiw::-webkit-scrollbar { display: none; }
+.hiw-step { flex-shrink: 0; background: var(--surface2); border-radius: 12px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; min-width: 180px; }
+.hiw-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+.hiw-step strong { display: block; font-size: 12px; font-weight: 700; }
+.hiw-step p { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* FEED */
+.feed-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.feed-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.feed-av { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: white; flex-shrink: 0; }
+.feed-meta h4 { font-size: 14px; font-weight: 700; }
+.feed-meta span { font-size: 11px; color: var(--muted); }
+.feed-text { font-size: 13px; line-height: 1.6; color: var(--text); }
+.feed-actions { display: flex; gap: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.feed-action { background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Space Grotesk', sans-serif; transition: .2s; }
+.feed-action:hover { color: var(--accent); }
+
+/* PADDING FOR BOTTOM NAV */
+.page-pad { padding-bottom: 80px; }
+
+/* STK PUSH STATUS */
+.status { padding:12px 14px; border-radius:10px; font-size:13px; margin-top:10px; display:none; line-height:1.6; }
+.status.pending { background:rgba(245,158,11,.1); border:1px solid var(--accent3); color:var(--accent3); }
+.status.success { background:rgba(34,197,94,.1); border:1px solid var(--accent); color:var(--accent); }
+.status.error   { background:rgba(244,63,94,.1); border:1px solid var(--accent2); color:var(--accent2); }
+.spinner { display:inline-block; width:13px; height:13px; border:2px solid currentColor;
+  border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite;
+  margin-right:6px; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* FRAUD ALERT BADGE */
+.fraud-badge { background: rgba(244,63,94,.15); border: 1px solid rgba(244,63,94,.3); color: var(--accent2); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+
+@media (max-width: 480px) {
+  .gift-grid { grid-template-columns: repeat(3, 1fr); }
+  .plan-grid { grid-template-columns: 1fr; }
+  .live-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadScreen">
+  <div class="load-logo">⚡ KaziLink Mtaani</div>
+  <div class="load-sub">Connect · Work · Earn</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+</div>
+
+<!-- AUTH -->
+<div id="authScreen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">⚡ KaziLink</div>
+    <div class="auth-tagline">Connect · Work · Earn in Kenya</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login',this)">Log In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register',this)">Register</button>
+    </div>
+    <div id="loginForm">
+      <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="Your password"></div>
+      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:4px"><i class="fas fa-sign-in-alt"></i> Log In</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="field"><label>Full Name</label><input id="regName" placeholder="John Mwangi"></div>
+      <div class="field"><label>Email</label><input id="regEmail" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label>Phone (M-Pesa)</label><input id="regPhone" type="tel" placeholder="07XXXXXXXX"></div>
+      <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="Min 8 characters"></div>
+      <button class="btn btn-primary" onclick="doRegister()" style="margin-top:4px"><i class="fas fa-user-plus"></i> Create Account</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">⚡ KaziLink</div>
+    <div class="topbar-right">
+      <div class="coin-chip" onclick="openTab('wallet')">🪙 <span id="coinDisplay">0</span></div>
+      <div class="avatar-btn" id="avatarBtn" onclick="openTab('profile')">JM</div>
+    </div>
+  </div>
+
+  <!-- TAB NAV (desktop) -->
+  <div class="tab-nav" id="tabNav">
+    <button class="tab-btn active" onclick="openTab('home')"><i class="fas fa-home"></i> Home</button>
+    <button class="tab-btn" onclick="openTab('live')"><i class="fas fa-broadcast-tower"></i> Live</button>
+    <button class="tab-btn" onclick="openTab('shop')"><i class="fas fa-store"></i> Shop</button>
+    <button class="tab-btn" onclick="openTab('wallet')"><i class="fas fa-wallet"></i> Wallet</button>
+    <button class="tab-btn" onclick="openTab('profile')"><i class="fas fa-user"></i> Profile</button>
+  </div>
+
+  <!-- HOME TAB -->
+  <div id="tab-home" class="tab-content active page-pad">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Your Coins</div>
+        <div class="stat-val" style="color:var(--accent3)">🪙 <span id="homeCoins">0</span></div>
+        <div class="stat-sub">Tap Wallet to buy more</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Balance</div>
+        <div class="stat-val" style="color:var(--accent)">KES <span id="homeBalance">0</span></div>
+        <div class="stat-sub">Ready to withdraw</div>
+      </div>
+    </div>
+
+    <!-- FEED -->
+    <div class="card-title">Community Feed</div>
+    <div class="feed-card">
+      <div class="feed-header">
+        <div class="feed-av" style="background:linear-gradient(135deg,#f97316,#ef4444)">KP</div>
+        <div class="feed-meta"><h4>@kamau_plumber</h4><span>Nairobi · 2h ago</span></div>
+      </div>
+      <div class="feed-text">Just finished a big pipe installation in Westlands. Looking for more plumbing jobs! Drop me a WhatsApp 🔧✨</div>
+      <div class="feed-actions">
+        <button class="feed-action"><i class="fas fa-heart"></i> 24</button>
+        <button class="feed-action"><i class="fas fa-comment"></i> 7</button>
+        <button class="feed-action"><i class="fas fa-share"></i> Share</button>
+      </div>
+    </div>
+    <div class="feed-card">
+      <div class="feed-header">
+        <div class="feed-av" style="background:linear-gradient(135deg,#059669,#10b981)">MW</div>
+        <div class="feed-meta"><h4>@mary_cleaner</h4><span>Westlands · 5h ago</span></div>
+      </div>
+      <div class="feed-text">Hiring 2 cleaners for a hotel in Mombasa. KES 800/day + accommodation. Must have experience 🧹</div>
+      <div class="feed-actions">
+        <button class="feed-action"><i class="fas fa-heart"></i> 51</button>
+        <button class="feed-action"><i class="fas fa-paper-plane"></i> Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE TAB -->
+  <div id="tab-live" class="tab-content page-pad">
+    <!-- ECONOMY STRIP -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">
+      <div style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(234,88,12,.1));border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🪙</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent3);margin-top:4px;">Buy Coins</div>
+        <div style="font-size:10px;color:var(--muted);">KES 1 = 1 Coin</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(16,185,129,.08));border:1px solid rgba(34,197,94,.25);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">🎁</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-top:4px;">Creators Get</div>
+        <div style="font-size:10px;color:var(--muted);">70% of gifts</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(59,130,246,.08));border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:20px;">💸</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent4);margin-top:4px;">Withdraw</div>
+        <div style="font-size:10px;color:var(--muted);">M-Pesa daily</div>
+      </div>
+    </div>
+
+    <div class="live-grid" id="liveGrid">
+      <div class="live-card" onclick="openGiftModal('kamau_plumber','KP','linear-gradient(135deg,#f97316,#ef4444)','Plumbing Masterclass','🔧','linear-gradient(135deg,#1a0a00,#5c2000)')">
+        <div class="live-thumb" style="background:linear-gradient(135deg,#1a0a00,#5c2000)">🔧
+          <div class="live-pill"><span class="live-dot"></span> LIVE</div>
+          <div class="live-viewers"><i class="fas fa-eye"></i> 342</div>
+        </div>
+        <div class="live-info">
+          <h4>Plumbing Masterclass</h4>
+          <p>Live Q&A with a certified plumber</p>
+          <div class="live-coins">🪙 2,140 coins sent · 🎁 48 gifts</div>
+          <button class="join-btn"><i class="fas fa-play"></i> Join & Send Gifts</button>
+        </div>
+      </div>
+      <div class="live-card" onclick="openGiftModal('njoroge_electric','NE','linear-gradient(135deg,#0057ff,#00c6ff)','Electrical Safety','⚡','linear-gradient(135deg,#000d1a,#003d7a)')">
+        <div class="live-thumb" style="background:linear-gradient(135deg,#000d1a,#003d7a)">⚡
+          <div class="live-pill"><span class="live-dot"></span> LIVE</div>
+          <div class="live-viewers"><i class="fas fa-eye"></i> 218</div>
+        </div>
+        <div class="live-info">
+          <h4>Electrical Safety for Homeowners</h4>
+          <p>Emergency tips from a licensed electrician</p>
+          <div class="live-coins">🪙 890 coins sent · 🎁 21 gifts</div>
+          <button class="join-btn"><i class="fas fa-play"></i> Join & Send Gifts</button>
+        </div>
+      </div>
+      <div class="live-card" onclick="openGiftModal('scholar_coach','SC','linear-gradient(135deg,#7c3aed,#2563eb)','Scholarship Tips','🎓','linear-gradient(135deg,#0a001a,#2d007a)')">
+        <div class="live-thumb" style="background:linear-gradient(135deg,#0a001a,#2d007a)">🎓
+          <div class="live-pill"><span class="live-dot"></span> LIVE</div>
+          <div class="live-viewers"><i class="fas fa-eye"></i> 591</div>
+        </div>
+        <div class="live-info">
+          <h4>Scholarship Tips — Winning Essays</h4>
+          <p>Live coaching for Kenyan applicants</p>
+          <div class="live-coins">🪙 5,320 coins sent · 🎁 110 gifts</div>
+          <button class="join-btn"><i class="fas fa-play"></i> Join & Send Gifts</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP TAB -->
+  <div id="tab-shop" class="tab-content page-pad">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">🛒 KaziLink Shop</div>
+        <div style="font-size:12px;color:var(--muted);">Real sellers · WhatsApp contact · No middleman</div>
+      </div>
+      <button class="btn btn-primary" style="width:auto;padding:9px 16px;font-size:12px;" onclick="openSellModal()">+ Sell</button>
+    </div>
+    <div class="hiw">
+      <div class="hiw-step"><div class="hiw-icon">📦</div><div><strong>Seller Posts</strong><p>Lists product free</p></div></div>
+      <div class="hiw-step"><div class="hiw-icon">🔍</div><div><strong>Buyer Sees</strong><p>Browses by category</p></div></div>
+      <div class="hiw-step"><div class="hiw-icon">💬</div><div><strong>WhatsApp</strong><p>Direct contact & pay</p></div></div>
+      <div class="hiw-step"><div class="hiw-icon">✅</div><div><strong>Deal Done</strong><p>Fast. Simple.</p></div></div>
+    </div>
+    <div class="shop-grid" id="shopGrid"></div>
+  </div>
+
+  <!-- WALLET TAB -->
+  <div id="tab-wallet" class="tab-content page-pad">
+    <div class="wallet-balance">
+      <div class="wbal-label">Total Earnings</div>
+      <div class="wbal-amount">KES <span id="walletBalance">0</span></div>
+      <div class="wbal-sub">🪙 <span id="walletCoins">0</span> coins · 70% creator share</div>
+    </div>
+    <div class="earn-strip">
+      <div class="earn-cell"><strong id="wGifts">0</strong><span>Gifts</span></div>
+      <div class="earn-cell"><strong id="wCoinsEarned">0</strong><span>Coins earned</span></div>
+      <div class="earn-cell"><strong id="wKES">KES 0</strong><span>Withdrawable</span></div>
+    </div>
+    <!-- WITHDRAW -->
+    <div class="card">
+      <div class="card-title">Withdraw to M-Pesa</div>
+      <div class="withdraw-field">
+        <input id="withdrawPhone" placeholder="07XXXXXXXX" type="tel">
+        <input id="withdrawAmt" placeholder="Amount (KES)" type="number" min="50">
+      </div>
+      <button class="btn" style="background:linear-gradient(135deg,#25d366,#128c7e);color:white;" onclick="doWithdraw()">
+        <i class="fab fa-whatsapp"></i> Request Withdrawal
+      </button>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center;">Min KES 50 · Processed within 24hrs · KaziLink keeps 30%</p>
+    </div>
+    <!-- BUY COINS -->
+    <div class="card">
+      <div class="card-title">Buy Coins via M-Pesa</div>
+      <div class="mpesa-card" style="padding:14px;margin-bottom:12px;">
+        <div class="mpesa-label">Send M-Pesa to Till/Paybill</div>
+        <div class="mpesa-name">KAZILINK MTAANI</div>
+        <div class="mpesa-number">073000054983</div>
+        <div style="font-size:11px;opacity:.8;">Use your phone as account reference</div>
+      </div>
+      <div class="coin-packs">
+        <div class="coin-pack" onclick="openMpesaPrompt(50,50,'50 Coins')"><div class="cp-coins">🪙 50 coins</div><div class="cp-price">KES 50</div></div>
+        <div class="coin-pack" onclick="openMpesaPrompt(100,100,'100 Coins')"><div class="cp-coins">🪙 100 coins</div><div class="cp-price">KES 100</div></div>
+        <div class="coin-pack" onclick="openMpesaPrompt(250,220,'250 Coins')"><div class="cp-coins">🪙 250 coins</div><div class="cp-price">KES 220</div></div>
+        <div class="coin-pack best" onclick="openMpesaPrompt(600,500,'600 Coins 🔥 Best Value')"><div class="cp-coins">🪙 600 coins 🔥</div><div class="cp-price" style="color:var(--accent3)">KES 500 · Best Value</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE TAB -->
+  <div id="tab-profile" class="tab-content page-pad">
+    <div class="card">
+      <div class="profile-header">
+        <div class="profile-av" id="profileAv">JM</div>
+        <div>
+          <div class="profile-name" id="profileName">Loading...</div>
+          <div class="profile-email" id="profileEmail"></div>
+          <div id="subBadgeWrap" style="display:none"><span class="sub-badge">✨ Pro Member</span></div>
+        </div>
+      </div>
+      <button class="btn btn-outline" style="margin-bottom:10px;" onclick="openSubModal()"><i class="fas fa-crown"></i> Subscribe / Upgrade</button>
+      <button class="btn btn-danger" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Log Out</button>
+    </div>
+
+    <!-- SUBSCRIPTION -->
+    <div class="card">
+      <div class="card-title">Subscription Plans</div>
+      <div class="plan-grid">
+        <div class="plan-card" id="planBasic" onclick="selectPlan('basic',299,this)">
+          <h3>Basic</h3>
+          <div class="plan-price">KES 299<span style="font-size:12px;color:var(--muted)">/mo</span></div>
+          <ul class="plan-features"><li>Network & feed</li><li>5 job applications</li><li>Basic scholarships</li></ul>
+        </div>
+        <div class="plan-card popular selected" id="planPro" onclick="selectPlan('pro',599,this)">
+          <h3>Pro ⭐</h3>
+          <div class="plan-price">KES 599<span style="font-size:12px;color:var(--muted)">/mo</span></div>
+          <ul class="plan-features"><li>Everything in Basic</li><li>Unlimited jobs</li><li>All scholarships</li><li>Live access</li><li>Priority support</li></ul>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="doSubscribe()"><i class="fas fa-lock-open"></i> Subscribe Now</button>
+    </div>
+  </div>
+
+
+<!-- LEGAL FOOTER -->
+<div id="legalFooter" style="text-align:center;padding:24px 12px 96px;font-size:11px;color:#6b7080">
+  <a href="/privacy" style="color:#6b7080;margin:0 8px">Privacy</a>·
+  <a href="/terms" style="color:#6b7080;margin:0 8px">Terms</a>·
+  <span>WhatsApp 0730 000 54983</span>
+</div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="bnav-btn active" id="bnav-home" onclick="openTab('home')"><i class="fas fa-home"></i>Home</button>
+    <button class="bnav-btn" id="bnav-live" onclick="openTab('live')"><i class="fas fa-broadcast-tower"></i>Live</button>
+    <button class="bnav-btn" id="bnav-shop" onclick="openTab('shop')"><i class="fas fa-store"></i>Shop</button>
+    <button class="bnav-btn" id="bnav-wallet" onclick="openTab('wallet')"><i class="fas fa-wallet"></i>Wallet</button>
+    <button class="bnav-btn" id="bnav-profile" onclick="openTab('profile')"><i class="fas fa-user"></i>Profile</button>
+  </div>
+</div>
+
+<!-- GIFT / LIVE ROOM MODAL -->
+<div class="overlay" id="giftOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('giftOverlay')"><i class="fas fa-times"></i></button>
+    <div class="modal-title" id="giftModalTitle">Send a Gift</div>
+    <div class="modal-sub" id="giftModalSub">Support this creator</div>
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--muted);">Your coins</span>
+      <span style="font-size:16px;font-weight:700;color:var(--accent3);">🪙 <span id="giftCoinBal">0</span></span>
+    </div>
+    <div class="gift-grid">
+      <div class="gift-item" onclick="sendGift('❤️','Heart',10)"><div class="g-emoji">❤️</div><div class="g-name">Heart</div><div class="g-cost">10 🪙</div></div>
+      <div class="gift-item" onclick="sendGift('🌹','Rose',20)"><div class="g-emoji">🌹</div><div class="g-name">Rose</div><div class="g-cost">20 🪙</div></div>
+      <div class="gift-item" onclick="sendGift('💎','Diamond',50)"><div class="g-emoji">💎</div><div class="g-name">Diamond</div><div class="g-cost">50 🪙</div></div>
+      <div class="gift-item" onclick="sendGift('🏆','Trophy',100)"><div class="g-emoji">🏆</div><div class="g-name">Trophy</div><div class="g-cost">100 🪙</div></div>
+      <div class="gift-item" onclick="sendGift('🚀','Rocket',200)"><div class="g-emoji">🚀</div><div class="g-name">Rocket</div><div class="g-cost">200 🪙</div></div>
+      <div class="gift-item" onclick="sendGift('👑','Crown',500)"><div class="g-emoji">👑</div><div class="g-name">Crown</div><div class="g-cost">500 🪙</div></div>
+      <div class="gift-item" onclick="sendGift('🦁','Lion',1000)"><div class="g-emoji">🦁</div><div class="g-name">Lion</div><div class="g-cost">1,000 🪙</div></div>
+      <div class="gift-item" onclick="openMpesaPrompt(100,100,'100 Coins')"><div class="g-emoji">🪙</div><div class="g-name">Buy Coins</div><div class="g-cost">+ more</div></div>
+    </div>
+    <button class="btn btn-outline" onclick="closeModal('giftOverlay')" style="margin-top:4px;">Close</button>
+  </div>
+</div>
+
+<!-- MPESA STK PUSH MODAL -->
+<div class="overlay" id="mpesaOverlay">
+  <div class="modal" style="max-width:380px;text-align:center;">
+    <button class="modal-close" onclick="closeModal('mpesaOverlay')"><i class="fas fa-times"></i></button>
+    <div style="font-size:36px;margin-bottom:6px;">📲</div>
+    <div class="modal-title">Pay via M-Pesa</div>
+    <div class="modal-sub" id="mpesaDesc">Complete your payment</div>
+    <!-- Amount pill -->
+    <div style="background:linear-gradient(135deg,#00a651,#007a3d);border-radius:14px;padding:18px;margin-bottom:16px;color:white;">
+      <div style="font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Amount</div>
+      <div style="font-size:30px;font-weight:700;">KES <span id="mpesaAmountDisplay">0</span></div>
+      <div style="font-size:11px;opacity:.7;margin-top:4px;">Till: <strong>5725479</strong> · KAZILINK MTAANI</div>
+    </div>
+    <!-- Phone input -->
+    <div class="field" style="text-align:left;">
+      <label>M-Pesa Phone Number</label>
+      <input id="stkPhone" type="tel" placeholder="07XXXXXXXX" maxlength="13">
+    </div>
+    <button class="btn btn-primary" id="stkBtn" onclick="doStkPush()">
+      <i class="fas fa-mobile-alt"></i> Send STK Push to My Phone
+    </button>
+    <div class="status" id="stkStatus"></div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);margin-top:12px;padding:10px 12px;background:var(--surface2);border-radius:8px;text-align:left;">
+      <i class="fas fa-shield-alt" style="color:var(--accent)"></i>
+      <span>Secure · Safaricom M-Pesa · Enter PIN on your phone when prompted</span>
+    </div>
+    <button class="btn btn-outline" onclick="closeModal('mpesaOverlay')" style="margin-top:10px;">Cancel</button>
+  </div>
+</div>
+
+<!-- SUBSCRIPTION MODAL -->
+<div class="overlay" id="subOverlay">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="closeModal('subOverlay')"><i class="fas fa-times"></i></button>
+    <div class="modal-title">Subscribe to KaziLink Pro</div>
+    <div class="modal-sub">Unlock all features</div>
+    <div class="plan-grid">
+      <div class="plan-card" id="subPlanBasic" onclick="selectSubPlan('basic',299,this)">
+        <h3>Basic</h3><div class="plan-price">KES 299<span style="font-size:12px;color:var(--muted)">/mo</span></div>
+        <ul class="plan-features"><li>Network & feed</li><li>5 job applications</li><li>Basic scholarships</li></ul>
+      </div>
+      <div class="plan-card popular selected" id="subPlanPro" onclick="selectSubPlan('pro',599,this)">
+        <h3>Pro ⭐</h3><div class="plan-price">KES 599<span style="font-size:12px;color:var(--muted)">/mo</span></div>
+        <ul class="plan-features"><li>Everything in Basic</li><li>Unlimited jobs</li><li>All scholarships</li><li>Live access</li><li>Priority support</li></ul>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="doSubscribe()"><i class="fas fa-lock-open"></i> Subscribe Now</button>
+  </div>
+</div>
+
+<!-- SELL MODAL -->
+<div class="overlay" id="sellOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('sellOverlay')"><i class="fas fa-times"></i></button>
+    <div class="modal-title">Sell on KaziLink</div>
+    <div class="modal-sub">Free to list · Buyers contact you on WhatsApp</div>
+    <div class="field"><label>Product Name</label><input id="sellName" placeholder="e.g. Professional Tool Set"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field"><label>Price (KES)</label><input id="sellPrice" type="number" placeholder="2500"></div>
+      <div class="field"><label>Category</label>
+        <select id="sellCat" style="width:100%;padding:12px 14px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none;">
+          <option value="construction">🏗️ Construction</option>
+          <option value="electrical">⚡ Electrical</option>
+          <option value="plumbing">🔧 Plumbing</option>
+          <option value="cleaning">🧹 Cleaning</option>
+          <option value="electronics">📱 Electronics</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Description</label><input id="sellDesc" placeholder="Condition, quantity, details…"></div>
+    <div class="field"><label>Your WhatsApp</label><input id="sellWa" type="tel" placeholder="07XXXXXXXX"></div>
+    <div class="field"><label>Product Emoji</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;" id="emojiPicker">
+        <span class="gift-item" style="cursor:pointer;padding:8px;font-size:20px;" onclick="pickEmoji(this,'🔧')">🔧</span>
+        <span class="gift-item" style="cursor:pointer;padding:8px;font-size:20px;" onclick="pickEmoji(this,'⚡')">⚡</span>
+        <span class="gift-item" style="cursor:pointer;padding:8px;font-size:20px;" onclick="pickEmoji(this,'🪣')">🪣</span>
+        <span class="gift-item" style="cursor:pointer;padding:8px;font-size:20px;" onclick="pickEmoji(this,'🏗️')">🏗️</span>
+        <span class="gift-item" style="cursor:pointer;padding:8px;font-size:20px;" onclick="pickEmoji(this,'📱')">📱</span>
+        <span class="gift-item" style="cursor:pointer;padding:8px;font-size:20px;" onclick="pickEmoji(this,'🛠️')">🛠️</span>
+      </div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#25d366,#128c7e);color:white;" onclick="doPostProduct()"><i class="fas fa-paper-plane"></i> Post Product — Free</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── FIREBASE CONFIG ─────────────────────────────────────────
+// REPLACE with your real Firebase config from console.firebase.google.com
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// ── CLOUD FUNCTIONS URL ──────────────────────────────────────
+// Firebase Console → Functions → "api" function → Trigger URL
+// e.g. "https://us-central1-kazilink-mtaani.cloudfunctions.net/api"
+const API_URL = "PASTE_FUNCTIONS_URL_HERE";
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const fns  = firebase.functions();
+
+// ── CONSTANTS ───────────────────────────────────────────────
+const TILL_NUMBER  = '073000054983';
+const TILL_NAME    = 'KAZILINK MTAANI';
+const OWNER_WA     = '073000054983';
+const CREATOR_CUT  = 0.70;
+const PLATFORM_CUT = 0.30;
+
+// ── STATE ───────────────────────────────────────────────────
+let currentUser = null;
+let userData    = {};
+let selectedPlanKey  = 'pro';
+let selectedPlanAmt  = 599;
+let pendingCoins = 0;
+let pendingKES   = 0;
+let pendingIsSub = false;
+let selectedEmoji = '🔧';
+let shopProducts  = [
+  {id:1,name:'Professional Tool Set (42 pcs)',price:2500,emoji:'🔧',cat:'plumbing',seller:'Kamau Peter',wa:'254790808322',loc:'Nairobi CBD',stars:'★★★★★'},
+  {id:2,name:'LED Work Light 50W',price:1800,emoji:'💡',cat:'electrical',seller:'Njoroge Electric',wa:'254790808322',loc:'Thika Road',stars:'★★★★☆'},
+  {id:3,name:'Heavy Duty Cleaning Kit',price:950,emoji:'🪣',cat:'cleaning',seller:'Mary Wanjiku',wa:'254790808322',loc:'Westlands',stars:'★★★★★'},
+  {id:4,name:'Cement Bags (50kg) × 5',price:3500,emoji:'🏗️',cat:'construction',seller:'BuildMart KE',wa:'254790808322',loc:'Karen',stars:'★★★★★'},
+];
+
+// ── SECURITY HELPERS ────────────────────────────────────────
+const _rate = {};
+function rateLimit(key, ms) {
+  const now = Date.now();
+  if (_rate[key] && now - _rate[key] < ms) { showToast('Slow down — try again in a moment', 'error'); return false; }
+  _rate[key] = now;
+  return true;
+}
+function sanitize(s) {
+  if (typeof s !== 'string') return '';
+  return s.replace(/[&<>"'`=/]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;','=':'&#61;','/':'&#47;'}[c]));
+}
+function xssCheck(val) {
+  return !/<script|javascript:|on\w+\s*=|<iframe|<object/i.test(val);
+}
+
+// Disable devtools shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase()))) e.preventDefault();
+});
+
+// ── LOAD SCREEN ─────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loadScreen').style.opacity = '0';
+    setTimeout(() => document.getElementById('loadScreen').style.display = 'none', 400);
+  }, 1800);
+});
+
+// ── AUTH STATE ──────────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    await loadUserData();
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    renderShop();
+  } else {
+    currentUser = null;
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+});
+
+async function loadUserData() {
+  if (!currentUser) return;
+  const snap = await db.collection('users').doc(currentUser.uid).get();
+  userData = snap.exists ? snap.data() : {};
+  refreshUI();
+}
+
+function refreshUI() {
+  const coins   = userData.coins   || 0;
+  const balance = userData.balance || 0;
+  const name    = userData.name    || currentUser.email || 'User';
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+
+  document.getElementById('coinDisplay').textContent   = coins;
+  document.getElementById('homeCoins').textContent     = coins;
+  document.getElementById('homeBalance').textContent   = balance;
+  document.getElementById('walletBalance').textContent = balance;
+  document.getElementById('walletCoins').textContent   = coins;
+  document.getElementById('giftCoinBal').textContent   = coins;
+
+  const gifts    = userData.giftsReceived || 0;
+  const earned   = userData.coinsEarned   || 0;
+  const withdrawable = Math.floor(earned * CREATOR_CUT);
+  document.getElementById('wGifts').textContent      = gifts;
+  document.getElementById('wCoinsEarned').textContent = earned;
+  document.getElementById('wKES').textContent        = 'KES ' + withdrawable;
+
+  document.getElementById('profileName').textContent  = name;
+  document.getElementById('profileEmail').textContent = currentUser.email || '';
+  document.getElementById('avatarBtn').textContent    = initials;
+  document.getElementById('profileAv').textContent   = initials;
+
+  if (userData.subscribed) {
+    document.getElementById('subBadgeWrap').style.display = 'block';
+  }
+}
+
+// ── AUTH ACTIONS ─────────────────────────────────────────────
+function switchAuthTab(mode, btn) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('loginForm').style.display   = mode === 'login'    ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = mode === 'register' ? 'block' : 'none';
+  document.getElementById('authError').style.display = 'none';
+}
+
+async function doLogin() {
+  if (!rateLimit('login', 3000)) return;
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  if (!email || !pass) return showAuthError('Please fill in all fields');
+  if (!xssCheck(email)) return showAuthError('Invalid input');
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (e) {
+    showAuthError(e.message.replace('Firebase: ',''));
+  }
+}
+
+async function doRegister() {
+  if (!rateLimit('register', 5000)) return;
+  const name  = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const pass  = document.getElementById('regPass').value;
+  if (!name || !email || !phone || !pass) return showAuthError('Please fill in all fields');
+  if (pass.length < 8)  return showAuthError('Password must be at least 8 characters');
+  if (!xssCheck(name+email)) return showAuthError('Invalid input detected');
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await db.collection('users').doc(cred.user.uid).set({
+      name, email, phone, coins: 0, balance: 0, subscribed: false,
+      coinsEarned: 0, giftsReceived: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    showAuthError(e.message.replace('Firebase: ',''));
+  }
+}
+
+async function doLogout() {
+  await auth.signOut();
+  showToast('Logged out successfully');
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// ── TABS ────────────────────────────────────────────────────
+function openTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn, .bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const btns = document.querySelectorAll(`[id$="-${name}"], [onclick*="'${name}'"]`);
+  btns.forEach(b => b.classList.add('active'));
+  document.getElementById('bnav-' + name)?.classList.add('active');
+  // Refresh wallet display when opening wallet
+  if (name === 'wallet' && currentUser) loadUserData();
+}
+
+// ── GIFT / LIVE ROOM ─────────────────────────────────────────
+let activeCreator = null;
+function openGiftModal(handle, initials, grad, title, emoji, bg) {
+  if (!currentUser) { closeModal('giftOverlay'); openAuthScreen(); return; }
+  activeCreator = handle;
+  document.getElementById('giftModalTitle').textContent = title;
+  document.getElementById('giftModalSub').textContent   = '@' + handle + ' is live now 🔴';
+  document.getElementById('giftCoinBal').textContent    = userData.coins || 0;
+  openModal('giftOverlay');
+}
+
+async function sendGift(emoji, name, cost) {
+  if (!rateLimit('gift', 800)) return;
+  if (!currentUser) return;
+  const coins = userData.coins || 0;
+  if (coins < cost) { closeModal('giftOverlay'); openMpesaPrompt(100, 100, '100 Coins'); return; }
+  try {
+    const sendGiftFn = fns.httpsCallable('sendGift');
+    await sendGiftFn({ emoji, name, cost, creatorHandle: activeCreator });
+    userData.coins = (userData.coins || 0) - cost;
+    refreshUI();
+    showToast(`${emoji} ${name} sent! -${cost} coins`, 'success');
+  } catch (e) {
+    showToast('Gift failed: ' + e.message, 'error');
+  }
+}
+
+// ── MPESA STK PUSH ───────────────────────────────────────────
+async function doStkPush() {
+  if (!rateLimit('stk', 5000)) return;
+  const statusEl = document.getElementById('stkStatus');
+  const btnEl    = document.getElementById('stkBtn');
+  const phone    = document.getElementById('stkPhone').value.trim();
+
+  const p = phone.replace(/^0/, '254').replace(/^\+/, '');
+  if (!/^254\d{9}$/.test(p)) {
+    statusEl.style.display = 'block';
+    statusEl.className = 'status error';
+    statusEl.innerHTML = '❌ Enter a valid Kenyan number e.g. 0712345678';
+    return;
+  }
+
+  // Determine payment type
+  let type;
+  if (pendingIsSub) {
+    type = `subscription:${selectedPlanKey}`;
+  } else {
+    type = `coins:${pendingCoins}`;
+  }
+
+  const prevHtml = btnEl.innerHTML;
+  btnEl.disabled = true;
+  statusEl.style.display = 'block';
+  statusEl.className = 'status pending';
+  statusEl.innerHTML = '<span class="spinner"></span> Sending STK Push… check your phone now';
+
+  try {
+    let uid = 'anon';
+    if (currentUser) uid = currentUser.uid;
+
+    const resp = await fetch(`${API_URL}/stkpush`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: p, type, uid }),
+    });
+    const data = await resp.json();
+
+    if (data.success) {
+      statusEl.className = 'status success';
+      statusEl.innerHTML = `✅ ${data.message}<br><small style="opacity:.7">Payment reflects in 1–2 minutes.</small>`;
+      showToast('📲 STK Push sent! Enter your M-Pesa PIN to complete.', 'success');
+      // Auto-close modal after 4s on success
+      setTimeout(() => {
+        closeModal('mpesaOverlay');
+        statusEl.style.display = 'none';
+        btnEl.disabled = false;
+        btnEl.innerHTML = prevHtml;
+        // Optimistic UI update
+        if (!pendingIsSub && pendingCoins > 0) {
+          userData.coins = (userData.coins || 0) + pendingCoins;
+          refreshUI();
+        } else if (pendingIsSub) {
+          grantSubscription();
+        }
+      }, 4000);
+    } else {
+      statusEl.className = 'status error';
+      statusEl.innerHTML = `❌ ${data.error || 'Payment failed. Try again.'}`;
+      btnEl.disabled = false;
+      btnEl.innerHTML = prevHtml;
+    }
+  } catch {
+    statusEl.className = 'status error';
+    statusEl.innerHTML = '❌ Network error. Check your connection and retry.';
+    btnEl.disabled = false;
+    btnEl.innerHTML = prevHtml;
+  }
+}
+
+function _resetStkModal() {
+  const status = document.getElementById('stkStatus');
+  const btn    = document.getElementById('stkBtn');
+  if (status) { status.style.display = 'none'; status.className = 'status'; }
+  if (btn)    { btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send STK Push to My Phone'; }
+  const ph = document.getElementById('stkPhone');
+  if (ph) ph.value = '';
+}
+
+function openMpesaPrompt(coins, kes, desc) {
+  pendingCoins = coins;
+  pendingKES   = kes;
+  pendingIsSub = false;
+  document.getElementById('mpesaDesc').textContent    = desc;
+  document.getElementById('mpesaAmountDisplay').textContent = kes;
+  _resetStkModal();
+  openModal('mpesaOverlay');
+}
+
+function openMpesaPromptForSub(kes, desc) {
+  pendingCoins = 0;
+  pendingKES   = kes;
+  pendingIsSub = true;
+  document.getElementById('mpesaDesc').textContent    = desc;
+  document.getElementById('mpesaAmountDisplay').textContent = kes;
+  _resetStkModal();
+  openModal('mpesaOverlay');
+}
+
+async function addCoins(coins, kes) {
+  try {
+    const buyFn = fns.httpsCallable('buyCoins');
+    await buyFn({ coins, kes });
+    userData.coins = (userData.coins || 0) + coins;
+    refreshUI();
+    showToast(`🪙 ${coins} coins added!`, 'success');
+  } catch (e) {
+    // Optimistic update if offline
+    userData.coins = (userData.coins || 0) + coins;
+    refreshUI();
+    showToast(`🪙 ${coins} coins added! (confirm on WhatsApp)`, 'success');
+  }
+}
+
+async function grantSubscription() {
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ subscribed: true });
+    userData.subscribed = true;
+    document.getElementById('subBadgeWrap').style.display = 'block';
+    closeModal('subOverlay');
+    showToast('🎉 ' + selectedPlanKey.charAt(0).toUpperCase() + selectedPlanKey.slice(1) + ' subscription active!', 'success');
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── SUBSCRIBE ────────────────────────────────────────────────
+function selectPlan(key, amt, el) {
+  selectedPlanKey = key; selectedPlanAmt = amt;
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function selectSubPlan(key, amt, el) { selectPlan(key, amt, el); }
+function openSubModal() { openModal('subOverlay'); }
+
+function doSubscribe() {
+  closeModal('subOverlay');
+  openMpesaPromptForSub(selectedPlanAmt, selectedPlanKey.charAt(0).toUpperCase() + selectedPlanKey.slice(1) + ' Plan — KES ' + selectedPlanAmt + '/month');
+}
+
+// ── WITHDRAW ─────────────────────────────────────────────────
+async function doWithdraw() {
+  if (!rateLimit('withdraw', 10000)) return;
+  const phone = document.getElementById('withdrawPhone').value.trim();
+  const amt   = parseInt(document.getElementById('withdrawAmt').value);
+  if (!phone || !amt) return showToast('Fill in phone and amount', 'error');
+  if (amt < 50) return showToast('Minimum withdrawal is KES 50', 'error');
+  const withdrawable = Math.floor((userData.coinsEarned || 0) * CREATOR_CUT);
+  if (amt > withdrawable) return showToast('Insufficient balance', 'error');
+  try {
+    const withdrawFn = fns.httpsCallable('requestWithdrawal');
+    await withdrawFn({ phone, amount: amt });
+    showToast('💸 Withdrawal requested! M-Pesa within 24hrs', 'success');
+  } catch (e) {
+    // Fallback to WhatsApp
+    const msg = encodeURIComponent(`KaziLink Withdrawal Request\nName: ${userData.name||''}\nAmount: KES ${amt}\nM-Pesa: ${phone}\nPlease process. Thank you!`);
+    window.open(`https://wa.me/${OWNER_WA}?text=${msg}`, '_blank');
+    showToast('💸 Withdrawal request sent via WhatsApp!', 'success');
+  }
+}
+
+// ── SHOP ─────────────────────────────────────────────────────
+function renderShop() {
+  const grid = document.getElementById('shopGrid');
+  grid.innerHTML = '';
+  shopProducts.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <div class="product-img">${p.emoji}</div>
+      <div class="product-info">
+        <h4>${sanitize(p.name)}</h4>
+        <div class="product-price">KES ${p.price.toLocaleString()}</div>
+        <div class="product-seller"><i class="fas fa-map-marker-alt" style="color:var(--accent2)"></i>${sanitize(p.loc)}</div>
+        <div style="font-size:11px;color:var(--accent3);margin-top:2px;">${p.stars}</div>
+        <button class="wa-btn" onclick="contactSeller('${sanitize(p.wa)}','${sanitize(p.name)}',${p.price})">
+          <i class="fab fa-whatsapp"></i> Contact Seller
+        </button>
+      </div>`;
+    grid.appendChild(card);
+  });
+  // CTA
+  const cta = document.createElement('div');
+  cta.className = 'product-card';
+  cta.style.cssText = 'cursor:pointer;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;min-height:200px;';
+  cta.innerHTML = '<div style="text-align:center;padding:16px;"><div style="font-size:32px;margin-bottom:8px;">➕</div><div style="font-size:13px;font-weight:700;color:var(--accent)">Sell Your Product</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Free · WhatsApp contact</div></div>';
+  cta.onclick = openSellModal;
+  grid.appendChild(cta);
+}
+
+function contactSeller(wa, name, price) {
+  const num = wa.replace(/\D/g, '');
+  const msg = encodeURIComponent(`Hi! I saw *${name}* on KaziLink Mtaani for KES ${price.toLocaleString()}. Is it still available?`);
+  window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+}
+
+function openSellModal() {
+  if (!currentUser) return showToast('Log in to sell products', 'error');
+  openModal('sellOverlay');
+}
+
+function doPostProduct() {
+  if (!rateLimit('post', 4000)) return;
+  const name  = document.getElementById('sellName').value.trim();
+  const price = parseInt(document.getElementById('sellPrice').value);
+  const desc  = document.getElementById('sellDesc').value.trim();
+  const wa    = document.getElementById('sellWa').value.trim();
+  const cat   = document.getElementById('sellCat').value;
+  if (!name || !price || !wa) return showToast('Fill in all fields', 'error');
+  if (!xssCheck(name + desc)) return showToast('Invalid input detected', 'error');
+  shopProducts.unshift({ id: Date.now(), name, price, emoji: selectedEmoji, cat, seller: userData.name || 'You', wa: wa.replace(/^0/, '254'), loc: 'Kenya', stars: '★★★★★' });
+  renderShop();
+  closeModal('sellOverlay');
+  showToast('🎉 Product posted! Buyers will contact you on WhatsApp', 'success');
+  // Save to Firestore
+  db.collection('products').add({ name, price, desc, wa, cat, emoji: selectedEmoji, sellerUid: currentUser.uid, sellerName: userData.name || '', createdAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{});
+}
+
+function pickEmoji(el, emoji) {
+  document.querySelectorAll('#emojiPicker .gift-item').forEach(e => e.style.borderColor = 'var(--border)');
+  el.style.borderColor = 'var(--accent)';
+  selectedEmoji = emoji;
+}
+
+// ── MODAL HELPERS ────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ── TOAST ─────────────────────────────────────────────────────
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── SERVICE WORKER (PWA) ─────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

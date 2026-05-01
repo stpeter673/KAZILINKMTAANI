@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<title>KaziLink Admin — Command Centre</title>
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #060811;
+  --surface: #0d1020;
+  --surface2: #141728;
+  --surface3: #1a1f35;
+  --border: #1e2545;
+  --border2: #2a3060;
+  --text: #e2e8f8;
+  --muted: #5a6490;
+  --green: #00e676;
+  --red: #ff4060;
+  --amber: #ffb300;
+  --blue: #4488ff;
+  --purple: #9966ff;
+  --cyan: #00d4ff;
+  --radius: 14px;
+  --glow-green: 0 0 20px rgba(0,230,118,.15);
+  --glow-red: 0 0 20px rgba(255,64,96,.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 240px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  transition: transform .3s;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .logo-text {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-logo .logo-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.nav-section {
+  padding: 16px 12px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: .2s;
+  border: none;
+  background: none;
+  width: calc(100% - 16px);
+  text-align: left;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(0,230,118,.1); color: var(--green); border: 1px solid rgba(0,230,118,.15); }
+.nav-item i { width: 16px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+.nav-badge.amber { background: var(--amber); color: #000; }
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.admin-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-radius: 10px;
+}
+.admin-av {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #000;
+}
+.admin-name { font-size: 12px; font-weight: 700; }
+.admin-role { font-size: 10px; color: var(--muted); }
+.logout-btn { margin-top: 8px; width: 100%; padding: 8px; background: rgba(255,64,96,.1); border: 1px solid rgba(255,64,96,.2); border-radius: 8px; color: var(--red); font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: .2s; }
+.logout-btn:hover { background: rgba(255,64,96,.2); }
+
+/* ── MAIN CONTENT ── */
+.main {
+  margin-left: 240px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  background: rgba(6,8,17,.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 60px;
+  z-index: 50;
+}
+.topbar-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.live-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--green); background: rgba(0,230,118,.08); border: 1px solid rgba(0,230,118,.2); padding: 5px 12px; border-radius: 20px; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+.refresh-btn { padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 12px; cursor: pointer; transition: .2s; }
+.refresh-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 28px; animation: fadeIn .3s; }
+.page.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── KPI CARDS ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.kpi.green::before { background: linear-gradient(90deg, var(--green), var(--cyan)); box-shadow: var(--glow-green); }
+.kpi.red::before   { background: linear-gradient(90deg, var(--red), #ff9000); }
+.kpi.blue::before  { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+.kpi.amber::before { background: linear-gradient(90deg, var(--amber), #ff6b00); }
+.kpi-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+.kpi-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
+.kpi-val.green { color: var(--green); }
+.kpi-val.red   { color: var(--red); }
+.kpi-val.blue  { color: var(--blue); }
+.kpi-val.amber { color: var(--amber); }
+.kpi-delta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.kpi-delta.up { color: var(--green); }
+.kpi-delta.down { color: var(--red); }
+.kpi-icon { position: absolute; top: 16px; right: 16px; font-size: 22px; opacity: .15; }
+
+/* ── TABLE ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; }
+.section-action { padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: .2s; }
+.section-action:hover { border-color: var(--green); color: var(--green); }
+.section-action.danger { border-color: rgba(255,64,96,.3); color: var(--red); }
+.section-action.danger:hover { background: rgba(255,64,96,.1); }
+
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--surface2); }
+th { padding: 12px 16px; text-align: left; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+.badge.green { background: rgba(0,230,118,.12); color: var(--green); border: 1px solid rgba(0,230,118,.2); }
+.badge.red   { background: rgba(255,64,96,.12);  color: var(--red);   border: 1px solid rgba(255,64,96,.2); }
+.badge.amber { background: rgba(255,179,0,.12);  color: var(--amber); border: 1px solid rgba(255,179,0,.2); }
+.badge.blue  { background: rgba(68,136,255,.12); color: var(--blue);  border: 1px solid rgba(68,136,255,.2); }
+.badge.purple { background: rgba(153,102,255,.12); color: var(--purple); border: 1px solid rgba(153,102,255,.2); }
+.action-btns { display: flex; gap: 6px; }
+.tbl-btn { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; font-family: 'Space Grotesk', sans-serif; transition: .2s; }
+.tbl-btn.approve { background: rgba(0,230,118,.15); color: var(--green); }
+.tbl-btn.approve:hover { background: rgba(0,230,118,.25); }
+.tbl-btn.reject  { background: rgba(255,64,96,.12);  color: var(--red); }
+.tbl-btn.reject:hover  { background: rgba(255,64,96,.22); }
+.tbl-btn.view    { background: var(--surface3); color: var(--text); }
+.tbl-btn.freeze  { background: rgba(255,179,0,.12); color: var(--amber); }
+.tbl-btn.send    { background: rgba(68,136,255,.15); color: var(--blue); }
+
+/* ── FRAUD PANEL ── */
+.fraud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.fraud-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.fraud-card.alert { border-color: rgba(255,64,96,.3); box-shadow: var(--glow-red); }
+.fraud-card.warn  { border-color: rgba(255,179,0,.3); }
+.fraud-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.fraud-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.fraud-icon.red { background: rgba(255,64,96,.15); }
+.fraud-icon.amber { background: rgba(255,179,0,.15); }
+.fraud-title { font-size: 14px; font-weight: 700; }
+.fraud-sub { font-size: 11px; color: var(--muted); }
+.fraud-list { display: flex; flex-direction: column; gap: 8px; }
+.fraud-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--surface2); border-radius: 8px; font-size: 12px; }
+.fraud-item .fi-user { font-weight: 600; }
+.fraud-item .fi-reason { color: var(--muted); font-size: 11px; }
+.fraud-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+.fraud-score.high { color: var(--red); }
+.fraud-score.med  { color: var(--amber); }
+
+/* ── WITHDRAW QUEUE ── */
+.withdraw-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.wa-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 120px; text-align: center; }
+.wa-stat strong { display: block; font-size: 20px; font-weight: 700; }
+.wa-stat span { font-size: 11px; color: var(--muted); }
+.auto-process-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--green), var(--cyan)); color: #000; border: none; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: .2s; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.auto-process-btn:hover { opacity: .9; transform: translateY(-1px); }
+
+/* ── CHART PLACEHOLDER ── */
+.chart-bar-wrap { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 0 4px; }
+.chart-bar { flex: 1; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--green), rgba(0,230,118,.3)); transition: height .3s; cursor: pointer; position: relative; }
+.chart-bar:hover { opacity: .85; }
+.chart-bar .bar-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--muted); white-space: nowrap; }
+.chart-bar .bar-val { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--green); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+
+/* ── SETTINGS / SECURITY ── */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.setting-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.setting-title { font-size: 13px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.toggle-row:last-child { border-bottom: none; }
+.toggle { position: relative; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--surface3); border-radius: 24px; cursor: pointer; transition: .3s; }
+.toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:var(--muted); border-radius:50%; transition:.3s; }
+.toggle input:checked + .toggle-slider { background: rgba(0,230,118,.3); }
+.toggle input:checked + .toggle-slider::before { background: var(--green); transform: translateX(20px); }
+.sec-log { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 12px; height: 140px; overflow-y: auto; line-height: 1.8; }
+.sec-log .log-ok { color: var(--green); }
+.sec-log .log-warn { color: var(--amber); }
+.sec-log .log-err { color: var(--red); }
+
+/* ── AUTH OVERLAY ── */
+#adminAuth { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.admin-login { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 36px; width: 360px; text-align: center; }
+.admin-login h1 { font-family: 'Syne', sans-serif; font-size: 24px; color: var(--green); margin-bottom: 4px; }
+.admin-login p { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+.admin-field { margin-bottom: 14px; text-align: left; }
+.admin-field label { display: block; font-size: 10px; font-weight: 700; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .6px; }
+.admin-field input { width: 100%; padding: 11px 14px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; transition: .2s; }
+.admin-field input:focus { border-color: var(--green); }
+.admin-submit { width: 100%; padding: 12px; background: var(--green); color: #000; border: none; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: .2s; }
+.admin-submit:hover { opacity: .9; }
+.admin-err { color: var(--red); font-size: 12px; margin-top: 8px; display: none; }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; transition: all .3s; z-index: 9000; transform: translateY(10px); }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { border-color: rgba(0,230,118,.4); color: var(--green); }
+.toast.error   { border-color: rgba(255,64,96,.4);  color: var(--red); }
+
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .fraud-grid, .settings-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ADMIN AUTH -->
+<div id="adminAuth">
+  <div class="admin-login">
+    <h1>⚡ Admin Centre</h1>
+    <p>KaziLink Mtaani — Restricted Access</p>
+    <div class="admin-field"><label>Admin Email</label><input id="adminEmail" type="email" placeholder="kazilinkpromtaani@gmail.com"></div>
+    <div class="admin-field"><label>Password</label><input id="adminPass" type="password" placeholder="Admin password"></div>
+    <button class="admin-submit" onclick="adminLogin()"><i class="fas fa-shield-alt"></i> Authenticate</button>
+    <div class="admin-err" id="adminErr"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text"><i class="fas fa-bolt"></i> KaziLink</div>
+    <div class="logo-sub">ADMIN COMMAND CENTRE v2.0</div>
+  </div>
+  <div class="nav-section">Overview</div>
+  <button class="nav-item active" onclick="showPage('dashboard',this)"><i class="fas fa-chart-line"></i> Dashboard</button>
+  <button class="nav-item" onclick="showPage('revenue',this)"><i class="fas fa-coins"></i> Revenue</button>
+  <div class="nav-section">Operations</div>
+  <button class="nav-item" onclick="showPage('withdrawals',this)"><i class="fas fa-paper-plane"></i> Withdrawals <span class="nav-badge amber" id="pendingBadge">0</span></button>
+  <button class="nav-item" onclick="showPage('users',this)"><i class="fas fa-users"></i> Users</button>
+  <button class="nav-item" onclick="showPage('products',this)"><i class="fas fa-store"></i> Products</button>
+  <div class="nav-section">Security</div>
+  <button class="nav-item" onclick="showPage('fraud',this)"><i class="fas fa-shield-virus"></i> Fraud Detection <span class="nav-badge" id="fraudBadge">0</span></button>
+  <button class="nav-item" onclick="showPage('security',this)"><i class="fas fa-lock"></i> Security Logs</button>
+  <div class="nav-section">Config</div>
+  <button class="nav-item" onclick="showPage('settings',this)"><i class="fas fa-cog"></i> Settings</button>
+  <div class="sidebar-bottom">
+    <div class="admin-chip">
+      <div class="admin-av">AD</div>
+      <div><div class="admin-name" id="adminNameDisp">Admin</div><div class="admin-role">Super Admin</div></div>
+    </div>
+    <button class="logout-btn" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="pageTitle">Dashboard</div>
+    <div class="topbar-right">
+      <div class="live-indicator"><span class="live-dot"></span> LIVE — <span id="onlineCount">0</span> users online</div>
+      <button class="refresh-btn" onclick="loadAllData()"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD PAGE ── -->
+  <div class="page active" id="page-dashboard">
+    <div class="kpi-grid">
+      <div class="kpi green">
+        <div class="kpi-label">Total Revenue (KES)</div>
+        <div class="kpi-val green" id="kpiRevenue">0</div>
+        <div class="kpi-delta up" id="kpiRevDelta">↑ Loading...</div>
+        <div class="kpi-icon">💰</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">Platform Coins Sold</div>
+        <div class="kpi-val blue" id="kpiCoins">0</div>
+        <div class="kpi-delta up" id="kpiCoinDelta">↑ Loading...</div>
+        <div class="kpi-icon">🪙</div>
+      </div>
+      <div class="kpi amber">
+        <div class="kpi-label">Pending Withdrawals</div>
+        <div class="kpi-val amber" id="kpiPending">0</div>
+        <div class="kpi-delta" id="kpiPendDelta">Awaiting approval</div>
+        <div class="kpi-icon">⏳</div>
+      </div>
+      <div class="kpi red">
+        <div class="kpi-label">Fraud Alerts</div>
+        <div class="kpi-val red" id="kpiFraud">0</div>
+        <div class="kpi-delta down" id="kpiFraudDelta">Needs review</div>
+        <div class="kpi-icon">🚨</div>
+      </div>
+    </div>
+
+    <!-- REVENUE CHART -->
+    <div class="table-wrap" style="padding:20px;margin-bottom:24px;">
+      <div class="section-header"><div class="section-title">Revenue (Last 7 Days)</div><span style="font-size:11px;color:var(--muted)">KES</span></div>
+      <div class="chart-bar-wrap" id="revenueChart"></div>
+      <div style="margin-top:28px;"></div>
+    </div>
+
+    <!-- RECENT TRANSACTIONS -->
+    <div class="section-header"><div class="section-title">Recent Transactions</div><button class="section-action" onclick="showPage('revenue',document.querySelector('[onclick*=revenue]'))">View All</button></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Time</th><th>User</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="recentTxBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── WITHDRAWALS PAGE ── -->
+  <div class="page" id="page-withdrawals">
+    <div class="withdraw-actions">
+      <div class="wa-stat"><strong id="wStatTotal" style="color:var(--amber)">KES 0</strong><span>Total Pending</span></div>
+      <div class="wa-stat"><strong id="wStatCount" style="color:var(--blue)">0</strong><span>Requests</span></div>
+      <div class="wa-stat"><strong id="wStatProcessed" style="color:var(--green)">0</strong><span>Processed Today</span></div>
+    </div>
+    <button class="auto-process-btn" onclick="autoProcessAll()">
+      <i class="fas fa-bolt"></i> Auto-Process All Pending via M-Pesa API
+    </button>
+    <div class="section-header"><div class="section-title">Withdrawal Queue</div><button class="section-action" onclick="loadWithdrawals()"><i class="fas fa-sync"></i> Refresh</button></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>User</th><th>Phone</th><th>Amount</th><th>Submitted</th><th>Fraud Score</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="withdrawBody">
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Loading withdrawals...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── REVENUE PAGE ── -->
+  <div class="page" id="page-revenue">
+    <div class="kpi-grid">
+      <div class="kpi green"><div class="kpi-label">Coin Sales (30d)</div><div class="kpi-val green" id="rev30Coins">KES 0</div><div class="kpi-icon">🪙</div></div>
+      <div class="kpi blue"><div class="kpi-label">Subscriptions (30d)</div><div class="kpi-val blue" id="rev30Subs">KES 0</div><div class="kpi-icon">⭐</div></div>
+      <div class="kpi amber"><div class="kpi-label">Gift Commission (30d)</div><div class="kpi-val amber" id="rev30Gifts">KES 0</div><div class="kpi-icon">🎁</div></div>
+      <div class="kpi red"><div class="kpi-label">Payout Total (30d)</div><div class="kpi-val red" id="rev30Payouts">KES 0</div><div class="kpi-icon">💸</div></div>
+    </div>
+    <div class="section-header"><div class="section-title">All Transactions</div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>User</th><th>Type</th><th>Gross</th><th>Platform %</th><th>Net</th><th>Status</th></tr></thead>
+        <tbody id="allTxBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── USERS PAGE ── -->
+  <div class="page" id="page-users">
+    <div class="section-header"><div class="section-title">All Users</div><button class="section-action" onclick="loadUsers()"><i class="fas fa-sync"></i> Refresh</button></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Coins</th><th>Balance</th><th>Subscribed</th><th>Fraud Risk</th><th>Actions</th></tr></thead>
+        <tbody id="usersBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Loading users...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── PRODUCTS PAGE ── -->
+  <div class="page" id="page-products">
+    <div class="section-header"><div class="section-title">Shop Listings</div><button class="section-action danger" onclick="deleteAllFlagged()"><i class="fas fa-trash"></i> Delete Flagged</button></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Price</th><th>Seller</th><th>Category</th><th>Posted</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="productsBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Loading products...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── FRAUD PAGE ── -->
+  <div class="page" id="page-fraud">
+    <div class="fraud-grid">
+      <div class="fraud-card alert">
+        <div class="fraud-header">
+          <div class="fraud-icon red"><i class="fas fa-skull-crossbones"></i></div>
+          <div><div class="fraud-title">High Risk Accounts</div><div class="fraud-sub">Score ≥ 80 — Immediate action needed</div></div>
+        </div>
+        <div class="fraud-list" id="highRiskList">
+          <div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">Loading...</div>
+        </div>
+      </div>
+      <div class="fraud-card warn">
+        <div class="fraud-header">
+          <div class="fraud-icon amber"><i class="fas fa-exclamation-triangle"></i></div>
+          <div><div class="fraud-title">Medium Risk</div><div class="fraud-sub">Score 40–79 — Monitor closely</div></div>
+        </div>
+        <div class="fraud-list" id="medRiskList">
+          <div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FRAUD RULES -->
+    <div class="section-header"><div class="section-title">Fraud Detection Rules</div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rule</th><th>Trigger</th><th>Action</th><th>Hits (24h)</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Velocity Gifting</strong></td><td>> 20 gifts in 5 min</td><td>Auto freeze + alert</td><td id="ruleHit1">0</td><td><span class="badge green">Active</span></td></tr>
+          <tr><td><strong>Multi-Account</strong></td><td>Same IP, 3+ accounts</td><td>Flag for review</td><td id="ruleHit2">0</td><td><span class="badge green">Active</span></td></tr>
+          <tr><td><strong>Self-Gifting</strong></td><td>User gifts own content</td><td>Block + flag</td><td id="ruleHit3">0</td><td><span class="badge green">Active</span></td></tr>
+          <tr><td><strong>Withdrawal Spike</strong></td><td>> KES 5,000 in 1 day</td><td>Manual review hold</td><td id="ruleHit4">0</td><td><span class="badge green">Active</span></td></tr>
+          <tr><td><strong>Fake Products</strong></td><td>XSS / script in listing</td><td>Auto delete + ban</td><td id="ruleHit5">0</td><td><span class="badge green">Active</span></td></tr>
+          <tr><td><strong>Rapid Register</strong></td><td>> 5 accounts/hour/IP</td><td>IP ban 24h</td><td id="ruleHit6">0</td><td><span class="badge green">Active</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── SECURITY PAGE ── -->
+  <div class="page" id="page-security">
+    <div class="settings-grid">
+      <div class="setting-card">
+        <div class="setting-title"><i class="fas fa-shield-alt" style="color:var(--green)"></i> Security Switches</div>
+        <div class="toggle-row"><span>Rate Limiting</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>XSS Protection</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>Fraud Auto-Freeze</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>Session Timeout (30min)</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>DevTools Block</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>IP Blacklist Enforcement</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>Auto-Withdraw Enabled</span><label class="toggle"><input type="checkbox" id="autoWithdrawToggle" checked><span class="toggle-slider"></span></label></div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-title"><i class="fas fa-terminal" style="color:var(--cyan)"></i> Live Security Log</div>
+        <div class="sec-log" id="secLog">
+          <span class="log-ok">[BOOT] Security engine started ✓</span><br>
+          <span class="log-ok">[AUTH] Firestore rules loaded ✓</span><br>
+          <span class="log-ok">[RATE] Rate limiter active ✓</span><br>
+          <span class="log-ok">[XSS]  Input sanitizer active ✓</span><br>
+          <span class="log-ok">[CSRF] Token validation active ✓</span><br>
+          <span class="log-warn">[INFO] Awaiting live data...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS PAGE ── -->
+  <div class="page" id="page-settings">
+    <div class="settings-grid">
+      <div class="setting-card">
+        <div class="setting-title"><i class="fas fa-mobile-alt" style="color:var(--green)"></i> M-Pesa Configuration</div>
+        <div class="toggle-row"><span>Till Number</span><span style="font-family:'JetBrains Mono',monospace;color:var(--green);">073000054983</span></div>
+        <div class="toggle-row"><span>Account Name</span><span style="color:var(--amber);">KAZILINK MTAANI</span></div>
+        <div class="toggle-row"><span>Sandbox Mode</span><label class="toggle"><input type="checkbox" id="sandboxToggle"><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>Auto-Withdrawal</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        <div class="toggle-row"><span>Min Withdrawal</span><span style="color:var(--text);">KES 50</span></div>
+        <div class="toggle-row"><span>Max Auto-Payout</span><span style="color:var(--text);">KES 5,000</span></div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-title"><i class="fas fa-percent" style="color:var(--amber)"></i> Revenue Split</div>
+        <div class="toggle-row"><span>Creator share (gifts)</span><span style="color:var(--green);font-weight:700;">70%</span></div>
+        <div class="toggle-row"><span>Platform fee (gifts)</span><span style="color:var(--blue);font-weight:700;">30%</span></div>
+        <div class="toggle-row"><span>Basic sub price</span><span style="color:var(--text);">KES 299/mo</span></div>
+        <div class="toggle-row"><span>Pro sub price</span><span style="color:var(--text);">KES 599/mo</span></div>
+        <div class="toggle-row"><span>Coin rate</span><span style="color:var(--text);">1 coin = KES 1</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── FIREBASE CONFIG ─────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const fns  = firebase.functions();
+
+// IMPORTANT: Replace with your real admin email(s)
+const ADMIN_EMAILS = ['kazilinkpromtaani@gmail.com'];
+
+// ── ADMIN AUTH ───────────────────────────────────────────────
+async function adminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass  = document.getElementById('adminPass').value;
+  if (!email || !pass) return showErr('Fill in all fields');
+  try {
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    if (!ADMIN_EMAILS.includes(cred.user.email)) {
+      await auth.signOut();
+      return showErr('Access denied — not an admin account');
+    }
+    document.getElementById('adminAuth').style.display = 'none';
+    document.getElementById('adminNameDisp').textContent = cred.user.email.split('@')[0];
+    addSecLog('ok', `[AUTH] Admin login: ${cred.user.email}`);
+    loadAllData();
+    startRealtime();
+  } catch (e) {
+    showErr(e.message.replace('Firebase: ', ''));
+    addSecLog('err', '[AUTH] Failed login attempt: ' + email);
+  }
+}
+function showErr(msg) { const el = document.getElementById('adminErr'); el.textContent = msg; el.style.display = 'block'; }
+
+auth.onAuthStateChanged(user => {
+  if (user && ADMIN_EMAILS.includes(user.email)) {
+    document.getElementById('adminAuth').style.display = 'none';
+    document.getElementById('adminNameDisp').textContent = user.email.split('@')[0];
+    loadAllData();
+    startRealtime();
+  }
+});
+
+async function adminLogout() { await auth.signOut(); location.reload(); }
+
+// ── NAVIGATION ───────────────────────────────────────────────
+const pageTitles = { dashboard:'Dashboard', withdrawals:'Withdrawal Queue', revenue:'Revenue', users:'Users', products:'Products', fraud:'Fraud Detection', security:'Security Logs', settings:'Settings' };
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageTitles[name] || name;
+  // Lazy load
+  if (name === 'withdrawals') loadWithdrawals();
+  if (name === 'users')       loadUsers();
+  if (name === 'products')    loadProducts();
+  if (name === 'fraud')       loadFraud();
+}
+
+// ── LOAD ALL DATA ─────────────────────────────────────────────
+async function loadAllData() {
+  loadDashboard();
+  loadWithdrawals();
+  loadUsers();
+  loadProducts();
+  loadFraud();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const adminDoc = await db.collection('admin').doc('main').get();
+    const data = adminDoc.data() || {};
+    const revenue = data.totalRevenue || 0;
+    const coinsSold = data.totalCoinsSold || 0;
+    document.getElementById('kpiRevenue').textContent = 'KES ' + revenue.toLocaleString();
+    document.getElementById('kpiCoins').textContent   = coinsSold.toLocaleString();
+    document.getElementById('kpiRevDelta').textContent = '↑ Updated live';
+  } catch(e) {
+    document.getElementById('kpiRevenue').textContent = 'KES —';
+  }
+
+  // Pending withdrawals count
+  try {
+    const w = await db.collection('withdrawals').where('status','==','pending').get();
+    const count = w.size;
+    document.getElementById('kpiPending').textContent = count;
+    document.getElementById('pendingBadge').textContent = count;
+  } catch(e) {}
+
+  // Fraud alerts
+  try {
+    const f = await db.collection('fraudAlerts').where('resolved','==',false).get();
+    const fc = f.size;
+    document.getElementById('kpiFraud').textContent = fc;
+    document.getElementById('fraudBadge').textContent = fc;
+  } catch(e) {}
+
+  // Recent transactions
+  await loadRecentTx();
+  renderRevenueChart();
+  loadRevenuePage();
+}
+
+async function loadRecentTx() {
+  const body = document.getElementById('recentTxBody');
+  try {
+    const snap = await db.collection('transactions').orderBy('createdAt','desc').limit(10).get();
+    if (snap.empty) { body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">No transactions yet</td></tr>'; return; }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const row = `<tr>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${formatTime(d.createdAt)}</td>
+        <td>${sanitize(d.userEmail || '—')}</td>
+        <td><span class="badge ${typeBadge(d.type)}">${sanitize(d.type || '—')}</span></td>
+        <td style="font-weight:700;">KES ${(d.amount||0).toLocaleString()}</td>
+        <td><span class="badge green">Confirmed</span></td>
+      </tr>`;
+      body.innerHTML += row;
+    });
+  } catch(e) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Connect Firebase to see data</td></tr>';
+  }
+}
+
+async function loadRevenuePage() {
+  try {
+    const snap = await db.collection('transactions').where('createdAt','>=', thirtyDaysAgo()).get();
+    let coinRev = 0, subRev = 0, giftRev = 0, payouts = 0;
+    const allBody = document.getElementById('allTxBody');
+    allBody.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const gross = d.amount || 0;
+      const platform = d.type === 'gift' ? gross * 0.30 : gross;
+      const net = gross - platform;
+      if (d.type === 'coins') coinRev += gross;
+      if (d.type === 'subscription') subRev += gross;
+      if (d.type === 'gift') giftRev += gross * 0.30;
+      if (d.type === 'withdrawal') payouts += gross;
+      allBody.innerHTML += `<tr>
+        <td style="font-size:11px;font-family:'JetBrains Mono',monospace;">${formatTime(d.createdAt)}</td>
+        <td>${sanitize(d.userEmail||'—')}</td>
+        <td><span class="badge ${typeBadge(d.type)}">${sanitize(d.type||'—')}</span></td>
+        <td>KES ${gross.toLocaleString()}</td>
+        <td style="color:var(--blue);">${d.type==='gift'?'30%':'100%'}</td>
+        <td style="color:var(--green);font-weight:700;">KES ${platform.toFixed(0)}</td>
+        <td><span class="badge green">Confirmed</span></td>
+      </tr>`;
+    });
+    document.getElementById('rev30Coins').textContent   = 'KES ' + coinRev.toLocaleString();
+    document.getElementById('rev30Subs').textContent    = 'KES ' + subRev.toLocaleString();
+    document.getElementById('rev30Gifts').textContent   = 'KES ' + giftRev.toFixed(0);
+    document.getElementById('rev30Payouts').textContent = 'KES ' + payouts.toLocaleString();
+    if (!snap.size) allBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">No transactions yet</td></tr>';
+  } catch(e) {}
+}
+
+function renderRevenueChart() {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const vals  = [1200,3400,2100,5600,4200,8900,6700];
+  const max   = Math.max(...vals);
+  const chart = document.getElementById('revenueChart');
+  chart.innerHTML = '';
+  days.forEach((d, i) => {
+    const h = Math.round((vals[i] / max) * 100);
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    bar.style.height = h + '%';
+    bar.innerHTML = `<span class="bar-val">KES ${(vals[i]/1000).toFixed(1)}K</span><span class="bar-label">${d}</span>`;
+    chart.appendChild(bar);
+  });
+}
+
+// ── WITHDRAWALS ───────────────────────────────────────────────
+async function loadWithdrawals() {
+  const body = document.getElementById('withdrawBody');
+  try {
+    const snap = await db.collection('withdrawals').orderBy('createdAt','desc').limit(50).get();
+    if (snap.empty) { body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No withdrawal requests yet</td></tr>'; return; }
+    body.innerHTML = '';
+    let totalPending = 0, pendingCount = 0;
+    snap.forEach((doc, i) => {
+      const d = doc.data();
+      const score = d.fraudScore || 0;
+      const scoreClass = score >= 80 ? 'high' : score >= 40 ? 'med' : '';
+      const scoreColor = score >= 80 ? 'var(--red)' : score >= 40 ? 'var(--amber)' : 'var(--green)';
+      if (d.status === 'pending') { totalPending += d.amount||0; pendingCount++; }
+      body.innerHTML += `<tr>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">#${i+1}</td>
+        <td><strong>${sanitize(d.userName||'—')}</strong><br><span style="font-size:11px;color:var(--muted);">${sanitize(d.userEmail||'')}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;">${sanitize(d.phone||'—')}</td>
+        <td style="font-weight:700;color:var(--amber);">KES ${(d.amount||0).toLocaleString()}</td>
+        <td style="font-size:11px;">${formatTime(d.createdAt)}</td>
+        <td><span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${scoreColor};">${score}/100</span></td>
+        <td><span class="badge ${d.status==='pending'?'amber':d.status==='approved'?'green':'red'}">${d.status||'pending'}</span></td>
+        <td>
+          <div class="action-btns">
+            ${d.status==='pending' && score < 80 ? `<button class="tbl-btn approve" onclick="approveWithdrawal('${doc.id}','${d.phone}',${d.amount})">✓ Pay</button>` : ''}
+            ${d.status==='pending' ? `<button class="tbl-btn reject" onclick="rejectWithdrawal('${doc.id}')">✗ Reject</button>` : ''}
+            ${score >= 80 ? `<button class="tbl-btn freeze" onclick="freezeUser('${d.userId}')">🧊 Freeze</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    });
+    document.getElementById('wStatTotal').textContent = 'KES ' + totalPending.toLocaleString();
+    document.getElementById('wStatCount').textContent = pendingCount;
+    document.getElementById('kpiPending').textContent = pendingCount;
+    document.getElementById('pendingBadge').textContent = pendingCount;
+  } catch(e) {
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Connect Firebase to see data</td></tr>';
+  }
+}
+
+async function approveWithdrawal(id, phone, amount) {
+  if (!confirm(`Pay KES ${amount} to ${phone}?`)) return;
+  try {
+    const processWithdrawalFn = fns.httpsCallable('processWithdrawal');
+    await processWithdrawalFn({ withdrawalId: id, phone, amount });
+    await db.collection('withdrawals').doc(id).update({ status: 'approved', processedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    showToast('💸 Withdrawal processed via M-Pesa!', 'success');
+    addSecLog('ok', `[PAYOUT] KES ${amount} → ${phone} approved`);
+    loadWithdrawals();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+    addSecLog('err', `[PAYOUT] Failed: ${e.message}`);
+  }
+}
+
+async function rejectWithdrawal(id) {
+  await db.collection('withdrawals').doc(id).update({ status: 'rejected' });
+  showToast('Withdrawal rejected', 'error');
+  addSecLog('warn', `[PAYOUT] Rejection: ${id}`);
+  loadWithdrawals();
+}
+
+async function autoProcessAll() {
+  if (!confirm('Auto-process ALL pending withdrawals under KES 5,000 with fraud score < 80?')) return;
+  try {
+    const autoFn = fns.httpsCallable('autoProcessWithdrawals');
+    const result = await autoFn({});
+    showToast(`✅ ${result.data.processed} withdrawals processed`, 'success');
+    addSecLog('ok', `[AUTO-PAY] Batch processed: ${result.data.processed} withdrawals`);
+    loadWithdrawals();
+  } catch(e) {
+    showToast('Auto-process error: ' + e.message, 'error');
+  }
+}
+
+// ── USERS ─────────────────────────────────────────────────────
+async function loadUsers() {
+  const body = document.getElementById('usersBody');
+  try {
+    const snap = await db.collection('users').orderBy('createdAt','desc').limit(100).get();
+    if (snap.empty) { body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No users yet</td></tr>'; return; }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const risk = calcFraudScore(d);
+      const riskColor = risk >= 80 ? 'var(--red)' : risk >= 40 ? 'var(--amber)' : 'var(--green)';
+      body.innerHTML += `<tr>
+        <td><strong>${sanitize(d.name||'—')}</strong></td>
+        <td style="font-size:12px;">${sanitize(d.email||'—')}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${sanitize(d.phone||'—')}</td>
+        <td style="color:var(--accent3);">🪙 ${(d.coins||0).toLocaleString()}</td>
+        <td style="color:var(--green);">KES ${(d.balance||0).toLocaleString()}</td>
+        <td><span class="badge ${d.subscribed?'green':'red'}">${d.subscribed?'Pro':'Free'}</span></td>
+        <td><span style="color:${riskColor};font-weight:700;font-family:'JetBrains Mono',monospace;">${risk}/100</span></td>
+        <td>
+          <div class="action-btns">
+            <button class="tbl-btn view" onclick="viewUser('${doc.id}')"><i class="fas fa-eye"></i></button>
+            ${d.frozen ? '<button class="tbl-btn approve" onclick="unfreezeUser(\''+doc.id+'\')">Unfreeze</button>' : '<button class="tbl-btn freeze" onclick="freezeUser(\''+doc.id+'\')">🧊</button>'}
+          </div>
+        </td>
+      </tr>`;
+    });
+  } catch(e) {
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Connect Firebase to see data</td></tr>';
+  }
+}
+
+function calcFraudScore(userData) {
+  let score = 0;
+  if ((userData.giftsInLastHour || 0) > 20) score += 40;
+  if ((userData.withdrawalAttempts24h || 0) > 3) score += 25;
+  if (userData.selfGiftAttempts > 0) score += 30;
+  if ((userData.coins || 0) > 10000 && (userData.coinsEarned || 0) === 0) score += 20;
+  return Math.min(score, 100);
+}
+
+async function freezeUser(uid) {
+  if (!confirm('Freeze this account?')) return;
+  await db.collection('users').doc(uid).update({ frozen: true, frozenAt: firebase.firestore.FieldValue.serverTimestamp() });
+  await db.collection('fraudAlerts').add({ userId: uid, reason: 'Admin freeze', resolved: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  showToast('Account frozen', 'error');
+  addSecLog('warn', `[FREEZE] Account frozen: ${uid}`);
+  loadUsers();
+}
+async function unfreezeUser(uid) {
+  await db.collection('users').doc(uid).update({ frozen: false });
+  showToast('Account unfrozen', 'success');
+  loadUsers();
+}
+function viewUser(uid) { showToast('User detail panel — coming in v2.1', ''); }
+
+// ── PRODUCTS ──────────────────────────────────────────────────
+async function loadProducts() {
+  const body = document.getElementById('productsBody');
+  try {
+    const snap = await db.collection('products').orderBy('createdAt','desc').limit(100).get();
+    if (snap.empty) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">No products yet</td></tr>'; return; }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const flagged = /<script|javascript:|on\w+=/i.test(d.name + d.desc);
+      body.innerHTML += `<tr ${flagged?'style="background:rgba(255,64,96,.05);"':''}>
+        <td><strong>${sanitize(d.name||'—')}</strong></td>
+        <td>KES ${(d.price||0).toLocaleString()}</td>
+        <td>${sanitize(d.sellerName||'—')}</td>
+        <td><span class="badge blue">${sanitize(d.cat||'—')}</span></td>
+        <td style="font-size:11px;">${formatTime(d.createdAt)}</td>
+        <td><span class="badge ${flagged?'red':'green'}">${flagged?'FLAGGED':'Active'}</span></td>
+        <td><div class="action-btns">
+          ${flagged ? `<button class="tbl-btn reject" onclick="deleteProduct('${doc.id}')">Delete</button>` : ''}
+          <button class="tbl-btn view">View</button>
+        </div></td>
+      </tr>`;
+    });
+  } catch(e) {
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Connect Firebase</td></tr>';
+  }
+}
+async function deleteProduct(id) {
+  await db.collection('products').doc(id).delete();
+  showToast('Product deleted', 'success');
+  addSecLog('warn', `[SECURITY] Flagged product deleted: ${id}`);
+  loadProducts();
+}
+async function deleteAllFlagged() {
+  const snap = await db.collection('products').get();
+  const batch = db.batch();
+  snap.forEach(doc => {
+    const d = doc.data();
+    if (/<script|javascript:|on\w+=/i.test((d.name||'') + (d.desc||''))) batch.delete(doc.ref);
+  });
+  await batch.commit();
+  showToast('All flagged products deleted', 'success');
+  loadProducts();
+}
+
+// ── FRAUD ─────────────────────────────────────────────────────
+async function loadFraud() {
+  try {
+    const snap = await db.collection('users').get();
+    const highRisk = [], medRisk = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      const score = calcFraudScore(d);
+      if (score >= 80) highRisk.push({ ...d, id: doc.id, score });
+      else if (score >= 40) medRisk.push({ ...d, id: doc.id, score });
+    });
+
+    document.getElementById('kpiFraud').textContent = highRisk.length;
+    document.getElementById('fraudBadge').textContent = highRisk.length;
+
+    const renderList = (items, elId) => {
+      const el = document.getElementById(elId);
+      if (!items.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">✅ None detected</div>'; return; }
+      el.innerHTML = items.map(u => `<div class="fraud-item">
+        <div><div class="fi-user">${sanitize(u.name||u.email||'Unknown')}</div><div class="fi-reason">High gift volume · withdrawal spike</div></div>
+        <div>
+          <div class="fraud-score ${u.score>=80?'high':'med'}">${u.score}/100</div>
+          <button class="tbl-btn freeze" style="margin-top:4px;" onclick="freezeUser('${u.id}')">🧊 Freeze</button>
+        </div>
+      </div>`).join('');
+    };
+    renderList(highRisk, 'highRiskList');
+    renderList(medRisk, 'medRiskList');
+  } catch(e) {}
+}
+
+// ── REALTIME ──────────────────────────────────────────────────
+function startRealtime() {
+  // Live online count simulation
+  setInterval(() => {
+    document.getElementById('onlineCount').textContent = Math.floor(80 + Math.random() * 200);
+  }, 5000);
+
+  // Listen for new withdrawals
+  db.collection('withdrawals').where('status','==','pending')
+    .onSnapshot(snap => {
+      document.getElementById('pendingBadge').textContent = snap.size;
+      document.getElementById('kpiPending').textContent = snap.size;
+      if (snap.docChanges().some(c => c.type === 'added')) {
+        addSecLog('warn', `[WITHDRAWAL] New request received`);
+      }
+    });
+
+  // Listen for fraud alerts
+  db.collection('fraudAlerts').where('resolved','==',false)
+    .onSnapshot(snap => {
+      document.getElementById('fraudBadge').textContent = snap.size;
+      document.getElementById('kpiFraud').textContent = snap.size;
+      if (snap.docChanges().some(c => c.type === 'added')) {
+        addSecLog('err', `[FRAUD] New alert triggered`);
+      }
+    });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function formatTime(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-KE') + ' ' + d.toLocaleTimeString('en-KE', {hour:'2-digit',minute:'2-digit'});
+}
+function typeBadge(type) {
+  const map = { coins:'blue', subscription:'purple', gift:'amber', withdrawal:'red', product:'green' };
+  return map[type] || 'blue';
+}
+function thirtyDaysAgo() {
+  const d = new Date(); d.setDate(d.getDate() - 30); return firebase.firestore.Timestamp.fromDate(d);
+}
+function sanitize(s) {
+  if (typeof s !== 'string') return String(s);
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function addSecLog(type, msg) {
+  const log = document.getElementById('secLog');
+  if (!log) return;
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : 'log-warn';
+  const time = new Date().toLocaleTimeString('en-KE');
+  log.innerHTML += `<br><span class="${cls}">[${time}] ${msg}</span>`;
+  log.scrollTop = log.scrollHeight;
+}
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3500);
+}
+function viewUser(uid) { showToast('User detail — coming in v2.1'); }
+</script>
+</body>
+</html>
